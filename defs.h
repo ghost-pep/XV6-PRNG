@@ -33,6 +33,24 @@ int             fileread(struct file*, char*, int n);
 int             filestat(struct file*, struct stat*);
 int             filewrite(struct file*, char*, int n);
 
+/**
+ * Indicates if a file can be written without blocking.
+ * @param {struct file *} f - the file to be checked
+ * @return 0 for true, >0 for false, -1 for error.
+ */
+int             filewriteable(struct file *);
+
+/**
+ * Indicates if a file can be read without blocking.
+ * @param {struct file *} f - the file to be checked
+ * @return 0 for true, >0 for false, -1 for error.
+ */
+int             filereadable(struct file *);
+
+int             fileselect(struct file *, int *, struct spinlock *);
+
+int             fileclrsel(struct file *, int *);
+
 // fs.c
 void            readsb(int dev, struct superblock *sb);
 int             dirlink(struct inode*, char*, uint);
@@ -51,6 +69,27 @@ struct inode*   nameiparent(char*, char*);
 int             readi(struct inode*, char*, uint, uint);
 void            stati(struct inode*, struct stat*);
 int             writei(struct inode*, char*, uint, uint);
+
+
+/**
+ * Indicates if a inode can be read without blocking.
+ * @param {struct inode *} i - the inode to be checked
+ * @param {uint} off - offset into the file (unused for devices)
+ * @return 0 for true, >0 for false, -1 for error.
+ */
+int             readablei(struct inode*, uint);
+
+/**
+ * Indicates if a inode can be written without blocking.
+ * @param {struct inode *} i - the inode to be checked
+ * @param {uint} off - offset into the file (unused for devices)
+ * @return 0 for true, >0 for false, -1 for error.
+ */
+int             writeablei(struct inode*, uint);
+
+int             selecti(struct inode*, int *, struct spinlock * lk);
+
+int             clrseli(struct inode*, int *);
 
 // ide.c
 void            ideinit(void);
@@ -99,6 +138,26 @@ int             pipealloc(struct file**, struct file**);
 void            pipeclose(struct pipe*, int);
 int             piperead(struct pipe*, char*, int);
 int             pipewrite(struct pipe*, char*, int);
+
+
+/**
+ * Indicates if a pipe can be written without blocking.
+ * @param {struct pipe *} p - the pipe to be checked
+ * @return 0 for true, >0 for false, -1 for error.
+ */
+int             pipewriteable(struct pipe*);
+
+
+/**
+ * Indicates if a pipe can be read without blocking.
+ * @param {struct pipe *} p - the pipe to be checked
+ * @return 0 for true, >0 for false, -1 for error.
+ */
+int             pipereadable(struct pipe*);
+
+int             pipeselect(struct pipe*, int *, struct spinlock *);
+
+int             pipeclrsel(struct pipe*, int *);
 
 //PAGEBREAK: 16
 // proc.c
@@ -177,3 +236,5 @@ void            clearpteu(pde_t *pgdir, char *uva);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
+
+
