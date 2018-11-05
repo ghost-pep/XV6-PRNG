@@ -182,6 +182,7 @@ struct {
   uint r;  // Read index
   uint w;  // Write index
   uint e;  // Edit index
+  struct selproc selprocread;
 } input;
 
 #define C(x)  ((x)-'@')  // Control-x
@@ -221,6 +222,10 @@ consoleintr(int (*getc)(void))
           wakeup(&input.r);
           // Wake up anything waiting on console read
           // LAB 4: Your code here
+	  wakeupselect(&input.selprocread);
+	  for (int x=0;x<NSELPROC;x++) 
+	    input.selprocread.sel[x] = 0;
+	  input.selprocread.selcount = 0;
         }
       }
       break;
@@ -288,26 +293,27 @@ consolewrite(struct inode *ip, char *buf, int n)
 /**
  * Indicates if the console can be written without blocking.
  * @param {struct inode *} ip - the inode to be checked
- * @return 0 for true, >0 for false, -1 for error.
+ * @return >0 for true, 0 for false, -1 for error.
  */
 int
 consolewriteable(struct inode* ip)
-{
-    return 0;
+{    
+    return 1;
 }
 
 /**
  * Indicates if the console can be read without blocking.
  * @param {struct inode *} ip - the inode to be checked
- * @return 0 for true, >0 for false, -1 for error.
+ * @return >0 for true, 1 for false, -1 for error.
  */
 int
 consolereadable(struct inode* ip)
 {
 
   // LAB 4: Your code here
+  if(proc->killed) return -1;
 
-  return 0;
+  return input.r != input.w;
 }
 
 // Console select
@@ -317,7 +323,7 @@ int
 consoleselect(struct inode *ip, int *selid, struct spinlock * lk)
 {
     // LAB 4: Your code here
-    
+    addselid(&input.selprocread, selid, lk);    
     return 0;
 }
 

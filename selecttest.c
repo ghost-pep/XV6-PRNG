@@ -31,7 +31,7 @@ test0(void)
        }
    }
    
-
+   printf(1,"I guess Test 0 succeeded?!?\n");
    return 0;
 }
 
@@ -85,15 +85,20 @@ test1(void)
         }
         wait();
     }
+    printf(1,"I guess Test 1 succeeded?!?\n");
     return 0;
 }
-
+/* I'm assuming that success is: 
+ *  0 - nothing set
+ *  1 - write set
+ *  2 - write set
+*/
 int
 test2(void)
 {
     fd_set s;
     int nfds = 3;
-    
+    int successfd0, successfd1, successfd2;
     FD_ZERO(&s);
 
     fd_set readfds, writefds;
@@ -108,22 +113,30 @@ test2(void)
         {
             if (FD_ISSET(fd,&readfds))
             {
-                printf(1, "Console fd 0 set\n");
+                //printf(1, "Console read fd %d set\n", fd);
             }
             else
             {
-                printf(1, "Console fd 0 not set\n");
+                //printf(1, "Console read fd %d not set\n", fd);
+		if(fd == 0) successfd0 = 1;
+		if(fd == 1) successfd1 = 1;
+		if(fd == 2) successfd2 = 1;
             }
             if (FD_ISSET(fd,&writefds))
             {
-                printf(1, "Console write fd %d set\n", fd);
+                //printf(1, "Console write fd %d set\n", fd);
+		if(fd == 1) successfd1 = successfd1 && 1;
+		if(fd == 2) successfd2 = successfd2 && 1;
             }
             else
             {
-                printf(1, "Console write fd %d not set\n", fd);
+                //printf(1, "Console write fd %d not set\n", fd);
+		if(fd == 0) successfd0 = successfd0 && 1;
             }
         }
     }
+    if(successfd0 && successfd1 && successfd2)
+      printf(1, "Test 2 succeeded?!? ?!\n");
     return 0;
 }
 
@@ -145,11 +158,11 @@ test3(void)
         {
             if (FD_ISSET(fd,&readfds))
             {
-                printf(1, "Console fd 0 set\n");
+                printf(1, "Console read fd %d set\n", fd);
             }
             else
             {
-                printf(1, "Console fd 0 not set to read\n", fd);
+                printf(1, "Console read fd %d not set to read\n", fd);
             }
             if (FD_ISSET(fd,&writefds))
             {
@@ -162,6 +175,7 @@ test3(void)
 
         }
     }
+	//TODO make this indicate success
     return 0;
 }
 

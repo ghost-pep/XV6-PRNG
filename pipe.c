@@ -107,6 +107,10 @@ pipewrite(struct pipe *p, char *addr, int n)
   
   // Wake up anything waiting to read
   // LAB 4: Your code here
+  wakeupselect(&p->selprocread);
+  for (int x=0;x<NSELPROC;x++) 
+    p->selprocread.sel[x] = 0;
+  p->selprocread.selcount = 0;
   
   wakeup(&p->nread);  //DOC: pipewrite-wakeup1
   release(&p->lock);
@@ -134,6 +138,10 @@ piperead(struct pipe *p, char *addr, int n)
   
   // Wake up anything waiting to write
   // LAB 4: Your code here
+  wakeupselect(&p->selprocwrite);
+  for (int x=0;x<NSELPROC;x++)
+    p->selprocwrite.sel[x] = 0;
+  p->selprocwrite.selcount = 0;
   
   wakeup(&p->nwrite);  //DOC: piperead-wakeup
   release(&p->lock);
@@ -151,7 +159,10 @@ int
 pipewriteable(struct pipe *p)
 {
     // LAB 4: Your code here
-    return 0;
+    if(p->readopen == 0 || proc->killed)
+      return -1;
+
+    return p->nwrite != p->nread + PIPESIZE;
 }
 
 /* Checks if this pipe is readable or not.
@@ -165,7 +176,10 @@ int
 pipereadable(struct pipe *p)
 {
     // LAB 4: Your code here
-    return 0;
+    if(proc->killed)
+      return -1;
+    //TODO what does it mean that the pipe is closes? Does write equal 0? I would guess 
+    return p->nread != p->nwrite || p->writeopen == 0;
 }
 
 /* Sets a wakeup call.
@@ -177,9 +191,18 @@ pipereadable(struct pipe *p)
  */
 int
 pipeselect(struct pipe *p, int * selid, struct spinlock * lk)
-{
-       
-    // LAB 4: Your code here.
+{   
+    // How do you know if it is a read or write? Just do both? 
+    if (p->readopen) {
+      if(p->selprocread.selcount < NSELPROC){
+	addselid(&p->selprocread, selid, lk);
+      }
+    }
+    if(p->writeopen) {
+      if(p->selprocwrite.selcount < NSELPROC){
+	addselid(&p->selprocwrite, selid, lk);
+      }
+    }
 
     return 0;
 }

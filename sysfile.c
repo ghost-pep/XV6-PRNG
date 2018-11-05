@@ -448,7 +448,7 @@ sys_pipe(void)
  *
  * Requirements:
  *
- * 1. Verify each fd passed in in the two sets is open and valid. If not, skip it.
+ * 1. Verify each fd passed in the two sets is open and valid. If not, skip it.
  * 2. If an fd is in a set, call filereadable/writeable on it to check if it
  *    readable or writeable.
  * 3. If none of the fds are readable/writeable, call fileselect on each one to
@@ -462,6 +462,7 @@ int
 sys_select(void)
 {
     int nfds;
+    struct file *file;
     fd_set *readfds, *writefds, retreadfds, retwritefds;
     FD_ZERO(&retreadfds);
     FD_ZERO(&retwritefds);
@@ -475,6 +476,24 @@ sys_select(void)
     acquire(&proc->selectlock);
 
     // LAB4: Your Code Here
+    int found_something = 0;
+    while(!found_something) {
+      for(int x=0;x<nfds;x++) {
+        file = proc->ofile[x];
+        if(FD_ISSET(x, readfds) && file && filereadable(file) > 0) {
+	  FD_SET(x, &retreadfds);found_something = 1;
+        }
+
+        if(FD_ISSET(x, writefds) && file && filewriteable(file) > 0) {
+	  FD_SET(x, &retwritefds);found_something = 1;
+        }
+      }
+      if(!found_something){
+	for(int x=0;x<nfds;x++)
+	  fileselect(proc->ofile[x], (int *)proc, &proc->selectlock);
+	sleep(proc, &proc->selectlock);
+      }
+    }
 
     *readfds = retreadfds;
     *writefds = retwritefds;
