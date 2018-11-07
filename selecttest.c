@@ -13,6 +13,7 @@ test0(void)
    if (s != 0)
    {   
         printf(1, "FD_ZERO FAILED: s = %x\n", s);
+	printf(1, "Test 0 FAILED.\n");
         return 1;
    }
    for (int fd=0; fd<nfds; fd++)
@@ -21,17 +22,19 @@ test0(void)
        if (!FD_ISSET(fd, &s))
        {
            printf(1, "FD_SET FAILED; s = %x\n", s);
+	   printf(1, "Test 0 FAILED.\n");
            return 1;
        }
        FD_CLR(fd, &s);
        if (FD_ISSET(fd, &s))
        {
            printf(1, "FD_CLR FAILED: s = %x\n", s);
+	   printf(1, "Test 0 FAILED.\n");
            return 1;
        }
    }
    
-   printf(1,"I guess Test 0 succeeded?!?\n");
+   printf(1,"Test 0 was successful.\n");
    return 0;
 }
 
@@ -53,12 +56,13 @@ test1(void)
         FD_ZERO(&readfds);
         FD_ZERO(&writefds);
         FD_SET(fds[0],&readfds);
-        if (select(nfds, &readfds, &writefds) == 0)
+        if (select(nfds, &readfds, &writefds) == 0)//child didn't return
         {
             close(fds[0]);
             if (!FD_ISSET(fds[0],&readfds))
             {
                 printf(1, "Child: select returned but read fd not set!\n");
+		printf(1, "Test 1 FAILED\n.");
                 return 1;
             }
         }
@@ -79,13 +83,14 @@ test1(void)
             if (!FD_ISSET(fds[1],&writefds))
             {
                 printf(1, "Parent: select returned but write fd not set!\n");
+		printf(1, "Test 1 FAILED\n.");
                 wait();
                 return 1;
             }
         }
         wait();
     }
-    printf(1,"I guess Test 1 succeeded?!?\n");
+    printf(1,"Test 1 was successful.\n");
     return 0;
 }
 /* I'm assuming that success is: 
@@ -136,7 +141,9 @@ test2(void)
         }
     }
     if(successfd0 && successfd1 && successfd2)
-      printf(1, "Test 2 succeeded?!? ?!\n");
+      printf(1, "Test 2 was successful.\n");
+    else 
+      printf(1, "Test FAILED.\n");
     return 0;
 }
 
@@ -145,7 +152,9 @@ test3(void)
 {
     fd_set s;
     int nfds = 3;
-    
+   
+    int success = 1;
+ 
     FD_ZERO(&s);
 
     fd_set readfds, writefds;
@@ -158,24 +167,30 @@ test3(void)
         {
             if (FD_ISSET(fd,&readfds))
             {
-                printf(1, "Console read fd %d set\n", fd);
+                //printf(1, "Console read fd %d set\n", fd);
+		if(fd != 0) success = 0;
             }
             else
             {
-                printf(1, "Console read fd %d not set to read\n", fd);
+                //printf(1, "Console read fd %d not set to read\n", fd);
+		if(fd == 0) success = 0;
             }
             if (FD_ISSET(fd,&writefds))
             {
-                printf(1, "Console write fd %d set\n", fd);
+                //printf(1, "Console write fd %d set\n", fd);	
+		success = 0;
             }
             else
             {
-                printf(1, "Console write fd %d not set\n", fd);
+                //printf(1, "Console write fd %d not set\n", fd);
             }
 
         }
     }
-	//TODO make this indicate success
+
+    if(success) printf(1, "Test 3 was successful.\n");
+    else printf(1, "Test 3 was NOT successful.\n");
+
     return 0;
 }
 
@@ -187,7 +202,9 @@ test3p(void)
     int fds[2];
     char wbuf[32] = "I am a write buffer\n";
     char rbuf[32];
-    
+   
+    int success = 1;
+ 
     pipe(fds);
     
     FD_ZERO(&s);
@@ -198,40 +215,48 @@ test3p(void)
     if (fork() == 0)
     {
         FD_SET(fds[0],&readfds);
-        printf(1, "Selecting on Read\n");
+        //printf(1, "Selecting on Read\n");
         if (select(nfds, &readfds, &writefds) == 0)
         {
             for (int fd=0; fd<nfds; fd++)
             {
                 if (FD_ISSET(fd,&readfds))
                 {
-                    printf(1, "fd %d set read\n", fd);
+                    //printf(1, "fd %d set read\n", fd);
+		    if(fd != 3) success = 0;
                 }
                 else
                 {
-                    printf(1, "fd %d not set to read\n", fd);
+                    //printf(1, "fd %d not set to read\n", fd);
+		    if(fd == 3) success = 0;
                 }
                 if (FD_ISSET(fd,&writefds))
                 {
-                    printf(1, "fd %d set write\n", fd);
+                    //printf(1, "fd %d set write\n", fd);
+		    success = 0;
                 }
                 else
                 {
-                    printf(1, "fd %d not set to write\n", fd);
+                    //printf(1, "fd %d not set to write\n", fd);
                 }
             }
             read(fds[0],rbuf,32);
             write(1,rbuf,32);
         }
+	exit();
     }
     else
     {
-        printf(1, "Sleeping for 5\n");
+        //printf(1, "Sleeping for 5\n");
         sleep(5);
-        printf(1, "Writing to pipe\n");
+        //printf(1, "Writing to pipe\n");
         write(fds[1],wbuf,32);
         wait();
     }
+
+    if(success) printf(1, "Test 3p was successful.\n");
+    else printf(1, "Test 3p FAILED.\n");
+
     return 0;
 }
 

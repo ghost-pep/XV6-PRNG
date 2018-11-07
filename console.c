@@ -223,9 +223,6 @@ consoleintr(int (*getc)(void))
           // Wake up anything waiting on console read
           // LAB 4: Your code here
 	  wakeupselect(&input.selprocread);
-	  for (int x=0;x<NSELPROC;x++) 
-	    input.selprocread.sel[x] = 0;
-	  input.selprocread.selcount = 0;
         }
       }
       break;
@@ -298,6 +295,7 @@ consolewrite(struct inode *ip, char *buf, int n)
 int
 consolewriteable(struct inode* ip)
 {    
+    // We can always write to the console
     return 1;
 }
 
@@ -311,8 +309,10 @@ consolereadable(struct inode* ip)
 {
 
   // LAB 4: Your code here
-  if(proc->killed) return -1;
+  if(proc->killed) return -1;		// If the process doesn't exist, return an error
 
+
+  // If there is something in the pipe, we can read from it!
   return input.r != input.w;
 }
 
@@ -323,6 +323,11 @@ int
 consoleselect(struct inode *ip, int *selid, struct spinlock * lk)
 {
     // LAB 4: Your code here
+
+    //NOTE: There is no differentiation between a read or write because we will
+    // never wait to write. All calls to this method must be wanting to wait 
+    // on the read end.
+
     addselid(&input.selprocread, selid, lk);    
     return 0;
 }
@@ -334,7 +339,8 @@ int
 consoleclrsel(struct inode *ip, int *selid)
 {
     // LAB 4: Your code here
-    
+    clearselid(&input.selprocread, selid);
+ 
     return 0;
 }
 void

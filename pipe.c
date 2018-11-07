@@ -69,12 +69,14 @@ pipeclose(struct pipe *p, int writable)
     p->writeopen = 0;
     // Wake up anything waiting to read
     // Lab 4: Your code here.
-    
+    wakeupselect(&p->selprocread);
+
     wakeup(&p->nread);
   } else {
     p->readopen = 0;
     // Wake up anything waiting to write
     // LAB 4: Your code here
+    wakeupselect(&p->selprocwrite);
     
     wakeup(&p->nwrite);
   }
@@ -108,9 +110,6 @@ pipewrite(struct pipe *p, char *addr, int n)
   // Wake up anything waiting to read
   // LAB 4: Your code here
   wakeupselect(&p->selprocread);
-  for (int x=0;x<NSELPROC;x++) 
-    p->selprocread.sel[x] = 0;
-  p->selprocread.selcount = 0;
   
   wakeup(&p->nread);  //DOC: pipewrite-wakeup1
   release(&p->lock);
@@ -139,9 +138,6 @@ piperead(struct pipe *p, char *addr, int n)
   // Wake up anything waiting to write
   // LAB 4: Your code here
   wakeupselect(&p->selprocwrite);
-  for (int x=0;x<NSELPROC;x++)
-    p->selprocwrite.sel[x] = 0;
-  p->selprocwrite.selcount = 0;
   
   wakeup(&p->nwrite);  //DOC: piperead-wakeup
   release(&p->lock);
@@ -159,9 +155,10 @@ int
 pipewriteable(struct pipe *p)
 {
     // LAB 4: Your code here
-    if(p->readopen == 0 || proc->killed)
+    if(p->readopen == 0 || proc->killed)	// If we have no process or we can't read what we write, return -1
       return -1;
 
+    // If we have room in the pipe, write to it!
     return p->nwrite != p->nread + PIPESIZE;
 }
 
@@ -176,9 +173,10 @@ int
 pipereadable(struct pipe *p)
 {
     // LAB 4: Your code here
-    if(proc->killed)
+    if(proc->killed)	// If there is no process, return an error
       return -1;
-    //TODO what does it mean that the pipe is closes? Does write equal 0? I would guess 
+    
+    // If there is something in the pipe or the pipe is closed, we can read from it!
     return p->nread != p->nwrite || p->writeopen == 0;
 }
 
@@ -188,18 +186,17 @@ pipereadable(struct pipe *p)
  *
  * 1. Use addselid to add the selid channel to the list of wakeups
  *
+ * Note: 5 denotes a read, while 6 denotes a write
  */
 int
 pipeselect(struct pipe *p, int * selid, struct spinlock * lk)
-{   
-    // How do you know if it is a read or write? Just do both? 
-    if (p->readopen) {
+{
+    if ((*selid) == 5) {			//We are trying to wait on the read side
       if(p->selprocread.selcount < NSELPROC){
 	addselid(&p->selprocread, selid, lk);
       }
-    }
-    if(p->writeopen) {
-      if(p->selprocwrite.selcount < NSELPROC){
+    } else {
+      if(p->selprocwrite.selcount < NSELPROC){	//We are trying to wait on the write side
 	addselid(&p->selprocwrite, selid, lk);
       }
     }
@@ -218,6 +215,9 @@ pipeclrsel(struct pipe *p, int * selid)
 {
 
     // LAB 4: Your code here.
-
+    if((*selid) == 5)//5 indicates a read
+      clearselid(&p->selprocread, selid);
+    else
+      clearselid(&p->selprocwrite, selid);
     return 0;
 }

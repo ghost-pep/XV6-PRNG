@@ -476,9 +476,10 @@ sys_select(void)
     acquire(&proc->selectlock);
 
     // LAB4: Your Code Here
-    int found_something = 0;
+    int found_something = 0;	// This is used to figure out if all fds are blocking. After
+				// for loop, will be 0 if all fds block, 1 otherwise
     while(!found_something) {
-      for(int x=0;x<nfds;x++) {
+      for(int x=0;x<nfds;x++) {			// Check the set fd's to see if any are available
         file = proc->ofile[x];
         if(FD_ISSET(x, readfds) && file && filereadable(file) > 0) {
 	  FD_SET(x, &retreadfds);found_something = 1;
@@ -488,10 +489,36 @@ sys_select(void)
 	  FD_SET(x, &retwritefds);found_something = 1;
         }
       }
+
+      // If all channels are blocked, call fileselect on all set fds
+      // and go to sleep
       if(!found_something){
-	for(int x=0;x<nfds;x++)
-	  fileselect(proc->ofile[x], (int *)proc, &proc->selectlock);
-	sleep(proc, &proc->selectlock);
+	for(int x=0;x<nfds;x++){
+	  file = proc->ofile[x];
+	  if(FD_ISSET(x, readfds)){ 
+	    proc->selid = 5;//Identifies a read
+	    fileselect(proc->ofile[x], &proc->selid, &proc->selectlock);
+	  }
+	  if(FD_ISSET(x, writefds)){
+	    proc->selid = 6;//Identifies a write
+	    fileselect(proc->ofile[x], &proc->selid, &proc->selectlock);
+	  }
+        }
+
+	sleep(&proc->selid, &proc->selectlock);
+
+        // Clear yourself from all channels after waking up in order to
+	// figure out which one woke you up on the next iteration of the
+	// for loop
+	for(int x=0;x<nfds;x++){
+	  file = proc->ofile[x];
+	  if(FD_ISSET(x, readfds)){
+	    fileclrsel(file, &proc->selid);
+	  }
+	  if(FD_ISSET(x, writefds)){
+	    fileclrsel(file, &proc->selid);
+	  }
+	}
       }
     }
 
