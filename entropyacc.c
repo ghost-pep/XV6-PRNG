@@ -1,6 +1,6 @@
 #include "entropyacc.h"
-#include "user.h"
 #include "types.h"
+#include "defs.h"
 
 /**
  * @brief Private entropy pools that the entropy accumulator
@@ -61,7 +61,7 @@ void addRandomEvent(int snum, int pnum, char *edata) {
   selected_pool.size++;
 
   /// Add a string of bytes of the real random event data to pool
-  memmove(selected_pool.entropy[selected_pool.size % POOL_SIZE], edata, string_len);
+  memmove(selected_pool.entropy + (selected_pool.size % POOL_SIZE), edata, string_len);
   selected_pool.size += string_len;
 
 }

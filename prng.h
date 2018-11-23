@@ -2,6 +2,5 @@
 #define PRNG_H
 
 void prnginit();
-void prngrand(int, char*);
 
 #endif
