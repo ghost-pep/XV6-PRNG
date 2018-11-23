@@ -24,6 +24,16 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 
+/**
+ * @brief Generates a pseudrandom string of bytes. The users will use this
+ * function to retrieve random data.
+ *
+ * @param str the pointer to the pseudorandom string of bytes
+ * @param bytes the number of bytes of random data to generate
+ * @return int 0 on success and -1 on error
+ */
+int random(char *str, int nbytes);
+
 // ulib.c
 int stat(char*, struct stat*);
 char* strcpy(char*, char*);
