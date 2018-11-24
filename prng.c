@@ -49,6 +49,9 @@ int sys_random(void) {
     return -1;
   }
 
+  /// For Debugging purposes;
+  printPoolsData();
+
   prngrand(bytesout, numbytes);
   return 0;
 }
@@ -82,8 +85,10 @@ prngrand(char* output, int numbytes)
   release(&tickslock);
 
   /* Reseed if p0 has > 64 bytes and if 100ms (10 ticks) has passed since the last reseed. */
+  acquire(&pools[0].lock);
   if (pools[0].size > MIN_SIZE_POOL && (xticks - prng.last_reseed_ticks) > 10) {
     prng.reseed_ctr++;
+    release(&pools[0].lock);
 
     /* Allocate memory for new seed. */
     char* seed_data = kalloc();
@@ -96,10 +101,12 @@ prngrand(char* output, int numbytes)
     int offset = 0;
     for (int i = 0; i < MAX_POOLS; i++) {
       if (prng.reseed_ctr | (1 << i)) {
+        acquire(&pools[i].lock);
         hash(pools[i].entropy, pools[i].size, seed_data + offset);
         offset += 32;
         memset(pools[i].entropy, 0, pools[i].size);
         pools[i].size = 0;
+        release(&pools[i].lock);
       }
     }
 
