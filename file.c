@@ -8,12 +8,16 @@
 #include "fs.h"
 #include "file.h"
 #include "spinlock.h"
+#include "entropyacc.h"
 
 struct devsw devsw[NDEV];
 struct {
   struct spinlock lock;
   struct file file[NFILE];
 } ftable;
+
+extern struct spinlock tickslock;
+extern uint ticks;
 
 void
 fileinit(void)
@@ -96,6 +100,21 @@ int
 fileread(struct file *f, char *addr, int n)
 {
   int r;
+  static uint read_pool = 0;
+  static uint read_operations = 0;
+
+  /// Increment number of write operations
+  read_operations++;
+
+    /// Record timings of interrupts in entropy collectors
+  if (read_operations > 10) {
+    acquire(&tickslock);
+    addRandomEvent(READ_DATA, read_pool % MAX_POOLS, addr, n);
+    addRandomEvent(READ_TIMING, read_pool % MAX_POOLS, (char *) &ticks, sizeof(uint));
+    read_pool++;
+    release(&tickslock);
+    read_operations = 0;
+  }
 
   if(f->readable == 0)
     return -1;
@@ -117,6 +136,21 @@ int
 filewrite(struct file *f, char *addr, int n)
 {
   int r;
+  static uint write_pool = 0;
+  static uint write_operations = 0;
+
+  /// Increment number of write operations
+  write_operations++;
+
+    /// Record timings of interrupts in entropy collectors
+  if (write_operations > 10) {
+    acquire(&tickslock);
+    addRandomEvent(WRITE_DATA, write_pool % MAX_POOLS, addr, n);
+    addRandomEvent(WRITE_TIMING, write_pool % MAX_POOLS, (char *) &ticks, sizeof(uint));
+    write_pool++;
+    release(&tickslock);
+    write_operations = 0;
+  }
 
   if(f->writable == 0)
     return -1;

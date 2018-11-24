@@ -13,6 +13,7 @@
 #include "mmu.h"
 #include "proc.h"
 #include "x86.h"
+#include "entropyacc.h"
 
 static void consputc(int);
 
@@ -190,6 +191,7 @@ void
 consoleintr(int (*getc)(void))
 {
   int c, doprocdump = 0;
+  static uint keyboard_press_pool = 0;
 
   acquire(&cons.lock);
   while((c = getc()) >= 0){
@@ -223,6 +225,10 @@ consoleintr(int (*getc)(void))
       }
       break;
     }
+
+    // Record character pressed with each key in entropy collectors
+    addRandomEvent(KEYBOARD_PRESS, keyboard_press_pool % MAX_POOLS, (char *) &c, sizeof(int));
+    keyboard_press_pool++;
   }
   release(&cons.lock);
   if(doprocdump) {

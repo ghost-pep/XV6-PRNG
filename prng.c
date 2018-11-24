@@ -27,21 +27,19 @@ prnginit()
   initEntropyAccumulator();
   prng.reseed_ctr = 0;
   prng.last_reseed_ticks = 0;
-  prnginit_internal(); 
+  prnginit_internal();
 }
 
 /**
- * @brief Generates a pseudrandom string of bytes.
+ * @brief Generates a pseudorandom string of bytes.
  *
- * @param random_string the pointer to the pseudorandom string of bytes
- * @param bytes the number of bytes of random data to generate
  * @return int 0 on success and -1 on error
  */
 int sys_random(void) {
   char* bytesout;
   int numbytes;
 
-  argint(1, &numbytes);  
+  argint(1, &numbytes);
   if (numbytes < 0) {
     return -1;
   }
@@ -52,11 +50,11 @@ int sys_random(void) {
   }
 
   prngrand(bytesout, numbytes);
-  return 0; 
+  return 0;
 }
 
-static void 
-prngreseed(char* seed, int length) 
+static void
+prngreseed(char* seed, int length)
 {
   hash(seed, length, prng.key);
   incrctr();
@@ -77,13 +75,13 @@ prnginit_internal()
 static void
 prngrand(char* output, int numbytes)
 {
-  /* Get the number of ticks for time comparison. */ 
+  /* Get the number of ticks for time comparison. */
   unsigned int xticks;
   acquire(&tickslock);
   xticks = ticks;
   release(&tickslock);
 
-  /* Reseed if p0 has >64 bytes and if 100ms (10 ticks) has passed since the last reseed. */
+  /* Reseed if p0 has > 64 bytes and if 100ms (10 ticks) has passed since the last reseed. */
   if (pools[0].size > MIN_SIZE_POOL && (xticks - prng.last_reseed_ticks) > 10) {
     prng.reseed_ctr++;
 
@@ -101,10 +99,10 @@ prngrand(char* output, int numbytes)
         hash(pools[i].entropy, pools[i].size, seed_data + offset);
         offset += 32;
         memset(pools[i].entropy, 0, pools[i].size);
-        pools[i].size = 0; 
+        pools[i].size = 0;
       }
     }
-    
+
     /* Reseed with pool data. */
     prngreseed(seed_data, offset);
   }
@@ -118,10 +116,10 @@ prngrand(char* output, int numbytes)
       panic("prngrand: unable to allocate memory.");
     }
     memset(data_ptr_page, 0, 4096);
-  
+
     prngranddata(numbytes, (char**) data_ptr_page);
 
-    /* Get pseudo-random data from indirect ptr_page and put it in the output pointer. */ 
+    /* Get pseudo-random data from indirect ptr_page and put it in the output pointer. */
     int left = numbytes;
     for (int i = 0; i < 1024; i++) {
       char* data_page = ((char**) data_ptr_page)[i];
@@ -140,8 +138,8 @@ prngrand(char* output, int numbytes)
   }
 }
 
-static void 
-prngranddata(int size, char** output) 
+static void
+prngranddata(int size, char** output)
 {
   /* Enforce bounds on input size. */
   if (size < 0 || size > (1 << 20)) {
@@ -181,7 +179,7 @@ prngranddata(int size, char** output)
       pgreadfrom = ((char**) blocks_ptr_page)[j / 4096];
     }
     pgwrittento[j] = pgreadfrom[j];
-  }  
+  }
 
   /* Free memory allocated by prnggenblocks after having gotten desired data. */
   char** iter_bpp = (char**) blocks_ptr_page;
@@ -211,7 +209,7 @@ prngranddata(int size, char** output)
 }
 
 static void
-prnggenblocks(int blocks, char** memaddr_arr) 
+prnggenblocks(int blocks, char** memaddr_arr)
 {
   /* Enforce that generator has been seeded. */
   if (prng.counter[0] == 0) {
@@ -241,7 +239,7 @@ prnggenblocks(int blocks, char** memaddr_arr)
 }
 
 static void
-incrctr() 
+incrctr()
 {
   if (prng.counter[0] != 0xFFFFFFFF) {
     prng.counter[0]++;

@@ -8,9 +8,20 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "spinlock.h"
+#include "entropyacc.h"
 
 void freerange(void *vstart, void *vend);
 extern char end[]; // first address after kernel loaded from ELF file
+
+/**
+ * @brief Flag keeping track of if kinit2 has been called.
+ */
+int kinit2_called;
+
+/**
+ * @brief Keeps track of how many memory operations have been performed.
+ */
+int memory_operations;
 
 struct run {
   struct run *next;
@@ -40,6 +51,7 @@ kinit2(void *vstart, void *vend)
 {
   freerange(vstart, vend);
   kmem.use_lock = 1;
+  kinit2_called = 1;
 }
 
 void
@@ -59,7 +71,13 @@ freerange(void *vstart, void *vend)
 void
 kfree(char *v)
 {
-  struct run *r;
+  struct run *r, *pg;
+  static uint free_memory_pool = 0;
+  uint free_pages = 0;
+  uint free_memory;
+
+  /// Increment number of memory operations
+  memory_operations++;
 
   if((uint)v % PGSIZE || v < end || V2P(v) >= PHYSTOP)
     panic("kfree");
@@ -72,6 +90,21 @@ kfree(char *v)
   r = (struct run*)v;
   r->next = kmem.freelist;
   kmem.freelist = r;
+
+  /// Add random event occasionally
+  if (kinit2_called == 1 && memory_operations > 500) {
+    /// Record timings of free physical memory in entropy collectors
+    pg = kmem.freelist;
+    while (pg != 0) {
+      free_pages++;
+      pg = pg->next;
+    }
+    free_memory = free_pages * PGSIZE;
+    addRandomEvent(FREE_MEMORY_SIZE, free_memory_pool % MAX_POOLS, (char *) &free_memory, sizeof(uint));
+    free_memory_pool++;
+    memory_operations = 0;
+  }
+
   if(kmem.use_lock)
     release(&kmem.lock);
 }
@@ -82,15 +115,38 @@ kfree(char *v)
 char*
 kalloc(void)
 {
-  struct run *r;
+  struct run *r, *pg;
+  static uint free_memory_pool = 0;
+  uint free_pages = 0;
+  uint free_memory;
+
+  /// Increment number of memory operations
+  memory_operations++;
 
   if(kmem.use_lock)
     acquire(&kmem.lock);
+
   r = kmem.freelist;
   if(r)
     kmem.freelist = r->next;
+
+  /// Add random event occasionally
+  if (kinit2_called == 1 && memory_operations > 500) {
+    /// Record timings of free physical memory in entropy collectors
+    pg = kmem.freelist;
+    while (pg != 0) {
+      free_pages++;
+      pg = pg->next;
+    }
+    free_memory = free_pages * PGSIZE;
+    addRandomEvent(FREE_MEMORY_SIZE, free_memory_pool % MAX_POOLS, (char *) &free_memory, sizeof(uint));
+    free_memory_pool++;
+    memory_operations = 0;
+  }
+
   if(kmem.use_lock)
     release(&kmem.lock);
+
   return (char*)r;
 }
 

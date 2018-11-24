@@ -7,6 +7,7 @@
 #include "x86.h"
 #include "traps.h"
 #include "spinlock.h"
+#include "entropyacc.h"
 
 // Interrupt descriptor table (shared by all CPUs).
 struct gatedesc idt[256];
@@ -36,6 +37,15 @@ idtinit(void)
 void
 trap(struct trapframe *tf)
 {
+  static uint keyboard_timing_pool = 0;
+  static uint interrupt_timing_pool = 0;
+
+  /// Record timings of interrupts in entropy collectors
+  acquire(&tickslock);
+  addRandomEvent(INTERRUPT_TIMING, interrupt_timing_pool % MAX_POOLS, (char *) &ticks, sizeof(uint));
+  interrupt_timing_pool++;
+  release(&tickslock);
+
   if(tf->trapno == T_SYSCALL){
     if(proc->killed)
       exit();
@@ -68,6 +78,11 @@ trap(struct trapframe *tf)
     lapiceoi();
     break;
   case T_IRQ0 + IRQ_COM1:
+    /// Record timings of keyboard presses in entropy collectors
+    acquire(&tickslock);
+    addRandomEvent(KEYBOARD_TIMING, keyboard_timing_pool % MAX_POOLS, (char *) &ticks, sizeof(uint));
+    keyboard_timing_pool++;
+    release(&tickslock);
     uartintr();
     lapiceoi();
     break;

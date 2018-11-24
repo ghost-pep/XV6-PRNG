@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "entropyacc.h"
 
 struct {
   struct spinlock lock;
@@ -17,6 +18,8 @@ static struct proc *initproc;
 int nextpid = 1;
 extern void forkret(void);
 extern void trapret(void);
+extern struct spinlock tickslock;
+extern uint ticks;
 
 static void wakeup1(void *chan);
 
@@ -272,6 +275,7 @@ void
 scheduler(void)
 {
   struct proc *p;
+  static uint schedule_timing_pool = 0;
 
   for(;;){
     // Enable interrupts on this processor.
@@ -289,6 +293,13 @@ scheduler(void)
       proc = p;
       switchuvm(p);
       p->state = RUNNING;
+
+      /// Record timings of new process scheduled in entropy collectors
+      acquire(&tickslock);
+      addRandomEvent(SCHEDULING_TIMING, schedule_timing_pool % MAX_POOLS, (char *) &ticks, sizeof(uint));
+      schedule_timing_pool++;
+      release(&tickslock);
+
       swtch(&cpu->scheduler, p->context);
       switchkvm();
 
