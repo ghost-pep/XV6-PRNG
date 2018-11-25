@@ -80,8 +80,6 @@ kfree(char *v)
   /// Increment number of memory operations
   memory_operations++;
 
-  struct run *r;
-
 
   if((uint)v % PGSIZE || v < end || V2P(v) >= PHYSTOP)
     panic("kfree");
