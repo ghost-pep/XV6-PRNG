@@ -47,3 +47,9 @@ To run xv6, install the QEMU PC simulators.  To run in QEMU, run "make qemu".
 
 To create a typeset version of the code, run "make xv6.pdf".  This
 requires the "mpage" utility.  See http://www.mesa.nl/pub/mpage/.
+=======
+In order to run in the terminal:
+	the test => exec "selecttest"
+	pipenet  => exec "pipenet"
+
+A detailed description of my pipenet modifications are at the top of pipenet.c.

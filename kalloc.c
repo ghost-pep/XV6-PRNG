@@ -71,6 +71,7 @@ freerange(void *vstart, void *vend)
 void
 kfree(char *v)
 {
+
   struct run *r, *pg;
   static uint free_memory_pool = 0;
   uint free_pages = 0;
@@ -78,6 +79,9 @@ kfree(char *v)
 
   /// Increment number of memory operations
   memory_operations++;
+
+  struct run *r;
+
 
   if((uint)v % PGSIZE || v < end || V2P(v) >= PHYSTOP)
     panic("kfree");
@@ -149,4 +153,3 @@ kalloc(void)
 
   return (char*)r;
 }
-

@@ -13,6 +13,7 @@
 #include "fs.h"
 #include "file.h"
 #include "fcntl.h"
+#include "select.h"
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -438,4 +439,92 @@ sys_pipe(void)
   fd[0] = fd0;
   fd[1] = fd1;
   return 0;
+}
+
+/* This system call looks for fds within its sets that are ready to read or write.
+ * If any fd is ready, it returns immediately with the returned sets containing
+ * the fds that are ready. On the other hand, if none are ready it sleeps on all the
+ * fds passed in until at least one is ready.
+ *
+ * Requirements:
+ *
+ * 1. Verify each fd passed in the two sets is open and valid. If not, skip it.
+ * 2. If an fd is in a set, call filereadable/writeable on it to check if it
+ *    readable or writeable.
+ * 3. If none of the fds are readable/writeable, call fileselect on each one to
+ *    set your wakeup call on that fd.
+ * 4. Go to sleep on your select channel.
+ * 5. Once you wakeup, go back to step 1 and repeat. At least one should be readable/writeable now.
+ * 6. Make sure to call fileclrsel to clear any remaining wakeup calls before you return.
+ * 7. Be sure you have turned off any bits in the sets that are not readable/writeable before returning.
+ */
+int
+sys_select(void)
+{
+    int nfds;
+    struct file *file;
+    fd_set *readfds, *writefds, retreadfds, retwritefds;
+    FD_ZERO(&retreadfds);
+    FD_ZERO(&retwritefds);
+
+    if (argint(0, (void*)&nfds) < 0)
+        return -1;
+    if (argptr(1, (void*)&readfds, sizeof(readfds)) < 0)
+        return -1;
+    if (argptr(2, (void*)&writefds, sizeof(writefds)) < 0)
+        return -1;
+    acquire(&proc->selectlock);
+
+    // LAB4: Your Code Here
+    int found_something = 0;	// This is used to figure out if all fds are blocking. After
+				// for loop, will be 0 if all fds block, 1 otherwise
+    while(!found_something) {
+      for(int x=0;x<nfds;x++) {			// Check the set fd's to see if any are available
+        file = proc->ofile[x];
+        if(FD_ISSET(x, readfds) && file && filereadable(file) > 0) {
+	  FD_SET(x, &retreadfds);found_something = 1;
+        }
+
+        if(FD_ISSET(x, writefds) && file && filewriteable(file) > 0) {
+	  FD_SET(x, &retwritefds);found_something = 1;
+        }
+      }
+
+      // If all channels are blocked, call fileselect on all set fds
+      // and go to sleep
+      if(!found_something){
+	for(int x=0;x<nfds;x++){
+	  file = proc->ofile[x];
+	  if(FD_ISSET(x, readfds)){
+	    proc->selid = 5;//Identifies a read
+	    fileselect(proc->ofile[x], &proc->selid, &proc->selectlock);
+	  }
+	  if(FD_ISSET(x, writefds)){
+	    proc->selid = 6;//Identifies a write
+	    fileselect(proc->ofile[x], &proc->selid, &proc->selectlock);
+	  }
+        }
+
+	sleep(&proc->selid, &proc->selectlock);
+
+        // Clear yourself from all channels after waking up in order to
+	// figure out which one woke you up on the next iteration of the
+	// for loop
+	for(int x=0;x<nfds;x++){
+	  file = proc->ofile[x];
+	  if(FD_ISSET(x, readfds)){
+	    fileclrsel(file, &proc->selid);
+	  }
+	  if(FD_ISSET(x, writefds)){
+	    fileclrsel(file, &proc->selid);
+	  }
+	}
+      }
+    }
+
+    *readfds = retreadfds;
+    *writefds = retwritefds;
+
+    release(&proc->selectlock);
+    return 0;
 }

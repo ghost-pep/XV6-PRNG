@@ -1,5 +1,6 @@
 struct stat;
 struct rtcdate;
+typedef uint fd_set;
 
 // system calls
 int fork(void);
@@ -33,6 +34,12 @@ int uptime(void);
  * @return int 0 on success and -1 on error
  */
 int random(char *str, int nbytes);
+
+// Select system call waits if all fds block
+// @param {fd_set *} readfds - Set of fds to read
+// @param {fd_set *} writefds - Set of fds to write
+// @return {int} -1 on error
+int select(int, fd_set *, fd_set *);
 
 // ulib.c
 int stat(char*, struct stat*);

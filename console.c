@@ -183,6 +183,7 @@ struct {
   uint r;  // Read index
   uint w;  // Write index
   uint e;  // Edit index
+  struct selproc selprocread;
 } input;
 
 #define C(x)  ((x)-'@')  // Control-x
@@ -221,6 +222,9 @@ consoleintr(int (*getc)(void))
         if(c == '\n' || c == C('D') || input.e == input.r+INPUT_BUF){
           input.w = input.e;
           wakeup(&input.r);
+          // Wake up anything waiting on console read
+          // LAB 4: Your code here
+	  wakeupselect(&input.selprocread);
         }
       }
       break;
@@ -289,6 +293,62 @@ consolewrite(struct inode *ip, char *buf, int n)
   return n;
 }
 
+/**
+ * Indicates if the console can be written without blocking.
+ * @param {struct inode *} ip - the inode to be checked
+ * @return >0 for true, 0 for false, -1 for error.
+ */
+int
+consolewriteable(struct inode* ip)
+{
+    // We can always write to the console
+    return 1;
+}
+
+/**
+ * Indicates if the console can be read without blocking.
+ * @param {struct inode *} ip - the inode to be checked
+ * @return >0 for true, 1 for false, -1 for error.
+ */
+int
+consolereadable(struct inode* ip)
+{
+
+  // LAB 4: Your code here
+  if(proc->killed) return -1;		// If the process doesn't exist, return an error
+
+
+  // If there is something in the pipe, we can read from it!
+  return input.r != input.w;
+}
+
+// Console select
+//
+// Adds the selid to be woken up.
+int
+consoleselect(struct inode *ip, int *selid, struct spinlock * lk)
+{
+    // LAB 4: Your code here
+
+    //NOTE: There is no differentiation between a read or write because we will
+    // never wait to write. All calls to this method must be wanting to wait
+    // on the read end.
+
+    addselid(&input.selprocread, selid, lk);
+    return 0;
+}
+
+// Console select clear
+//
+// Removes the selid from being woken up.
+int
+consoleclrsel(struct inode *ip, int *selid)
+{
+    // LAB 4: Your code here
+    clearselid(&input.selprocread, selid);
+
+    return 0;
+}
 void
 consoleinit(void)
 {
@@ -296,9 +356,13 @@ consoleinit(void)
 
   devsw[CONSOLE].write = consolewrite;
   devsw[CONSOLE].read = consoleread;
+  devsw[CONSOLE].writeable = consolewriteable;
+  devsw[CONSOLE].readable = consolereadable;
+  devsw[CONSOLE].select = consoleselect;
+  devsw[CONSOLE].clrsel = consoleclrsel;
+  initselproc(&devsw[CONSOLE].selprocread);
   cons.locking = 1;
 
   picenable(IRQ_KBD);
   ioapicenable(IRQ_KBD, 0);
 }
-

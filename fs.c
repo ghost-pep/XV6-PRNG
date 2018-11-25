@@ -24,7 +24,7 @@
 static void itrunc(struct inode*);
 // there should be one superblock per disk device, but we run with
 // only one device
-struct superblock sb; 
+struct superblock sb;
 
 // Read the super block.
 void
@@ -652,4 +652,54 @@ struct inode*
 nameiparent(char *path, char *name)
 {
   return namex(path, 1, name);
+}
+
+// Check if this inode is readable
+int
+readablei(struct inode *ip, uint off)
+{
+  if(ip->type == T_DEV){
+    if(ip->major < 0 || ip->major >= NDEV || !devsw[ip->major].readable)
+      return -1;
+    return devsw[ip->major].readable(ip);
+  }
+
+  return -1;
+}
+
+// Check if this inode is writeable
+int
+writeablei(struct inode *ip, uint off)
+{
+  if(ip->type == T_DEV){
+    if(ip->major < 0 || ip->major >= NDEV || !devsw[ip->major].writeable)
+      return -1;
+    return devsw[ip->major].writeable(ip);
+  }
+
+  return -1;
+}
+
+int
+selecti(struct inode *ip, int * selid, struct spinlock * lk)
+{
+ if(ip->type == T_DEV){
+    if(ip->major < 0 || ip->major >= NDEV || !devsw[ip->major].select)
+      return -1;
+    return devsw[ip->major].select(ip, selid, lk);
+  }
+
+  return -1;
+}
+
+int
+clrseli(struct inode *ip, int * selid)
+{
+ if(ip->type == T_DEV){
+    if(ip->major < 0 || ip->major >= NDEV || !devsw[ip->major].select)
+      return -1;
+    return devsw[ip->major].clrsel(ip, selid);
+  }
+
+  return -1;
 }

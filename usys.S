@@ -29,6 +29,6 @@ SYSCALL(getpid)
 SYSCALL(sbrk)
 SYSCALL(sleep)
 SYSCALL(uptime)
-
+SYSCALL(select)
 # Define global access point for random system call
 SYSCALL(random)

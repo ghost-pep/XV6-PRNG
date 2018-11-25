@@ -20,5 +20,9 @@
 #define SYS_link   19
 #define SYS_mkdir  20
 #define SYS_close  21
+<<<<<<< HEAD
 
 #define SYS_random  22 /// Call number for random system call
+=======
+#define SYS_select 22
+>>>>>>> pipenet/lab4

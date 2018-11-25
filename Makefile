@@ -27,6 +27,7 @@ OBJS = \
 	uart.o\
 	vectors.o\
 	vm.o\
+	select.o\
   prng.o\
   entropyacc.o\
   hash.o\
@@ -176,7 +177,9 @@ UPROGS=\
 	_usertests\
 	_wc\
 	_zombie\
-  _randomtest\
+	_pipenet\
+	_selecttest\
+	_randomtest\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
