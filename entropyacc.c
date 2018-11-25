@@ -63,16 +63,18 @@ addRandomEvent(int snum, int pnum, char *edata, int data_len)
   selected_pool = &pools[pnum];
   acquire(&selected_pool->lock);
 
-  /// Add snum of real random event to given pool
+  /// Add source number of real random event to given pool
   selected_pool->entropy[selected_pool->size % POOL_SIZE] = (char) snum;
   selected_pool->size++;
 
-  /// Add string_len of real random event to given pool
+  /// Add size of real random event to given pool
   selected_pool->entropy[selected_pool->size % POOL_SIZE] = (char) data_len;
   selected_pool->size++;
 
   /// Add a string of bytes of the real random event data to pool
-  memmove(selected_pool->entropy + (selected_pool->size % POOL_SIZE), edata, data_len);
+  for (int i = 0; i < data_len; i ++) {
+    selected_pool->entropy[(selected_pool->size + i) % POOL_SIZE] = edata[i];
+  }
   selected_pool->size += data_len;
 
   /// Release lock for selected pool
