@@ -22,7 +22,7 @@ static void prnggenblocks(int, char**);
 static void incrctr();
 
 void
-prnginit()
+prnginit(void)
 {
   initEntropyAccumulator();
   prng.reseed_ctr = 0;
@@ -35,7 +35,8 @@ prnginit()
  *
  * @return int 0 on success and -1 on error
  */
-int sys_random(void) {
+int
+sys_random(void) {
   char* bytesout;
   int numbytes;
 
@@ -69,7 +70,7 @@ prngreseed(char* seed, int length)
 }
 
 static void
-prnginit_internal()
+prnginit_internal(void)
 {
   memset(prng.counter, 0, 16);
   memset(prng.key, 0, 32);
@@ -246,7 +247,7 @@ prnggenblocks(int blocks, char** memaddr_arr)
 }
 
 static void
-incrctr()
+incrctr(void)
 {
   if (prng.counter[0] != 0xFFFFFFFF) {
     prng.counter[0]++;

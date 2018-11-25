@@ -35,13 +35,8 @@ pipealloc(struct file **f0, struct file **f1)
   p->writeopen = 1;
   p->nwrite = 0;
   p->nread = 0;
-<<<<<<< HEAD
-=======
-
   initselproc(&p->selprocread);
   initselproc(&p->selprocwrite);
-
->>>>>>> pipenet/lab4
   initlock(&p->lock, "pipe");
   (*f0)->type = FD_PIPE;
   (*f0)->readable = 1;
@@ -70,23 +65,15 @@ pipeclose(struct pipe *p, int writable)
   acquire(&p->lock);
   if(writable){
     p->writeopen = 0;
-<<<<<<< HEAD
-    wakeup(&p->nread);
-  } else {
-    p->readopen = 0;
-=======
     // Wake up anything waiting to read
     // Lab 4: Your code here.
     wakeupselect(&p->selprocread);
-
     wakeup(&p->nread);
   } else {
     p->readopen = 0;
     // Wake up anything waiting to write
     // LAB 4: Your code here
     wakeupselect(&p->selprocwrite);
-
->>>>>>> pipenet/lab4
     wakeup(&p->nwrite);
   }
   if(p->readopen == 0 && p->writeopen == 0){
@@ -109,23 +96,17 @@ pipewrite(struct pipe *p, char *addr, int n)
         release(&p->lock);
         return -1;
       }
-<<<<<<< HEAD
-=======
+
       wakeupselect(&p->selprocread);
->>>>>>> pipenet/lab4
       wakeup(&p->nread);
       sleep(&p->nwrite, &p->lock);  //DOC: pipewrite-sleep
     }
     p->data[p->nwrite++ % PIPESIZE] = addr[i];
   }
-<<<<<<< HEAD
-=======
 
   // Wake up anything waiting to read
   // LAB 4: Your code here
   wakeupselect(&p->selprocread);
-
->>>>>>> pipenet/lab4
   wakeup(&p->nread);  //DOC: pipewrite-wakeup1
   release(&p->lock);
   return n;
@@ -149,20 +130,14 @@ piperead(struct pipe *p, char *addr, int n)
       break;
     addr[i] = p->data[p->nread++ % PIPESIZE];
   }
-<<<<<<< HEAD
-=======
 
   // Wake up anything waiting to write
   // LAB 4: Your code here
   wakeupselect(&p->selprocwrite);
-
->>>>>>> pipenet/lab4
   wakeup(&p->nwrite);  //DOC: piperead-wakeup
   release(&p->lock);
   return i;
 }
-<<<<<<< HEAD
-=======
 
 /* Checks if this pipe is writeable or not.
  *
@@ -241,4 +216,3 @@ pipeclrsel(struct pipe *p, int * selid)
       clearselid(&p->selprocwrite, selid);
     return 0;
 }
->>>>>>> pipenet/lab4
