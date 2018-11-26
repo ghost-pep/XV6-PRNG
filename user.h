@@ -41,6 +41,19 @@ int random(char *str, int nbytes);
 // @return {int} -1 on error
 int select(int, fd_set *, fd_set *);
 
+/**
+ * @brief : Encrypts a message using CTR and AES-128.
+ * Calls ctr_encrypt in ctr.h
+ */
+int encrypt(const u_int8_t message[], u_int8_t ciphertext[], size_t size, const u_int8_t sequence[], u_int32_t key[4]);
+
+/**
+ * @brief : Decrypts a message using CTR and AES-128.
+ * Calls ctr_decrypt in ctr.h
+ */
+int decrypt(const u_int8_t ciphertext[], u_int8_t message[], size_t size, const u_int8_t sequence[], u_int32_t key[4]);
+
+
 // ulib.c
 int stat(char*, struct stat*);
 char* strcpy(char*, char*);

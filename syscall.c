@@ -102,7 +102,8 @@ extern int sys_select(void);
 
 /// Final project system calls
 extern int sys_random(void);
-
+extern int sys_encrypt(void);
+extern int sys_decrypt(void);
 
 
 
@@ -129,7 +130,10 @@ static int (*syscalls[])(void) = {
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
 [SYS_select]  sys_select,
+    // Final project calls
 [SYS_random]  sys_random,
+[SYS_encrypt] sys_encrypt,
+[SYS_decrypt] sys_decrypt,
 };
 
 void

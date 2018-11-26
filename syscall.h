@@ -22,3 +22,5 @@
 #define SYS_close  21
 #define SYS_select 22
 #define SYS_random 23 /// Call number for random system call
+#define SYS_encrypt 24
+#define SYS_decrypt 25
