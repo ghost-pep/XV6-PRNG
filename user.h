@@ -53,6 +53,7 @@ int encrypt(const u_int8_t message[], u_int8_t ciphertext[], size_t size, const 
  */
 int decrypt(const u_int8_t ciphertext[], u_int8_t message[], size_t size, const u_int8_t sequence[], u_int32_t key[4]);
 
+int encryptPipe();
 
 // ulib.c
 int stat(char*, struct stat*);
