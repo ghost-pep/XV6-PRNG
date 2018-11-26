@@ -4,6 +4,7 @@
 #include "entropyacc.h"
 #include "hash.h"
 #include "aes.h"
+#include "ctr.h"
 
 extern struct entropy_pool pools[MAX_POOLS];
 
@@ -241,7 +242,20 @@ prnggenblocks(int blocks, char** memaddr_arr)
       memaddr_arr[i / 4096] = kalloc_pg;
       pgwrittento = kalloc_pg;
     }
-    aesblockcipher(prng.key, prng.counter, pgwrittento + (i % 4096));
+      // Creating a 128-bits key from a 256-bit keys
+      u_int32_t* key1 = (u_int32_t*) prng.key;
+      u_int32_t* key2 = (u_int32_t*) (prng.key + 16);
+      key key;
+      for (uint i = 0; i<KEY_SIZE; i+=1) {
+          key[i] = key1[i] ^ key2[i];
+      }
+      u_int32_t roundKeys[BLOCK_COLUMNS*(ROUNDS+1)];    // Keys needed for AES-encryption
+      
+      keyExpansion(key, roundKeys, KEY_SIZE);
+      aes_encrypt((u_int8_t*)prng.counter, (u_int8_t*)pgwrittento + (i % 4096), roundKeys);
+//      aesblockcipher(prng.key, prng.counter, pgwrittento + (i % 4096));
+      
+      // Otherwise you can compute the whole sequence and use ctr_encrypt in "ctr.h"
     incrctr();
   }
 }

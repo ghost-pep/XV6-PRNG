@@ -53,6 +53,6 @@ void aes_decrypt(const u_int8_t in[BLOCK_ROWS*BLOCK_COLUMNS], u_int8_t out[BLOCK
 /**
  Non-functional method only for compilation purposes. DO NOT CALL !!!!!
  */
-void aesblockcipher(char*, int*, char*);
+//void aesblockcipher(char*, int*, char*);
 
 #endif /* aes_h */
