@@ -6,6 +6,7 @@
 #include "fs.h"
 #include "file.h"
 #include "spinlock.h"
+#include "ctr.h"
 
 #define PIPESIZE 512
 
@@ -18,6 +19,10 @@ struct pipe {
   int writeopen;  // write fd is still open
   struct selproc selprocread;
   struct selproc selprocwrite;
+  
+    char encrypted;
+    u_int32_t* key;
+    u_int8_t* counter;
 };
 
 int

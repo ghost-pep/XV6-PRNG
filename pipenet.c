@@ -27,8 +27,15 @@ char * shargv[] = { "sh", 0 };
 void
 pipenet(void)
 {
+#define BUF_SIZE 100
+#define CTR_SIZE 112    // Must be a multiple of 16
   int toshfds[2], fromshfds[2];
-  char buf[100];
+  char buf[BUF_SIZE];
+  char encryptedBuf[BUF_SIZE];
+  u_int8_t counter[CTR_SIZE];
+  random((char*)counter, CTR_SIZE);
+  u_int32_t KEY[4] = {0x1E1E1E1E,0x87654321,0xDEADBEEF,0xABCBACED};
+    
   int bytesread;			// Used to denote how many bytes are waiting to be
         // read from the console
 

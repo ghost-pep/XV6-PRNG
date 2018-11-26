@@ -181,6 +181,7 @@ UPROGS=\
 	_pipenet\
 	_selecttest\
 	_randomtest\
+    _ctrtest\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
