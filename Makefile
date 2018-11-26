@@ -28,10 +28,11 @@ OBJS = \
 	vectors.o\
 	vm.o\
 	select.o\
-  prng.o\
-  entropyacc.o\
-  hash.o\
-  aes.o\
+  	prng.o\
+  	entropyacc.o\
+  	hash.o\
+  	aes.o\
+	ctr.o\
 
 # Cross-compiling (e.g., on Mac OS X)
 # TOOLPREFIX = i386-jos-elf
