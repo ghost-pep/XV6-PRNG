@@ -104,9 +104,9 @@ prngrand(char* output, int numbytes)
     for (int i = 0; i < MAX_POOLS; i++) {
       if (prng.reseed_ctr | (1 << i)) {
         acquire(&pools[i].lock);
-        hash(pools[i].entropy, pools[i].size, seed_data + offset);
+        hash(pools[i].entropy, (pools[i].size > POOL_SIZE) ? POOL_SIZE : pools[i].size, seed_data + offset);
         offset += 32;
-        memset(pools[i].entropy, 0, pools[i].size);
+        memset(pools[i].entropy, 0, (pools[i].size > POOL_SIZE) ? POOL_SIZE : pools[i].size);
         pools[i].size = 0;
         release(&pools[i].lock);
       }
@@ -250,13 +250,10 @@ prnggenblocks(int blocks, char** memaddr_arr)
           key[i] = key1[i] ^ key2[i];
       }
       u_int32_t roundKeys[BLOCK_COLUMNS*(ROUNDS+1)];    // Keys needed for AES-encryption
-      
+
       keyExpansion(key, roundKeys, KEY_SIZE);
       aes_encrypt((u_int8_t*)prng.counter, (u_int8_t*)pgwrittento + (i % 4096), roundKeys);
-//      aesblockcipher(prng.key, prng.counter, pgwrittento + (i % 4096));
-      
-      // Otherwise you can compute the whole sequence and use ctr_encrypt in "ctr.h"
-    incrctr();
+      incrctr();
   }
 }
 

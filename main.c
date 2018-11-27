@@ -5,6 +5,7 @@
 #include "mmu.h"
 #include "proc.h"
 #include "x86.h"
+#include "prng.h"
 
 static void startothers(void);
 static void mpmain(void)  __attribute__((noreturn));
@@ -32,6 +33,9 @@ main(void)
   binit();         // buffer cache
   fileinit();      // file table
   ideinit();       // disk
+
+  prnginit();      // prng init
+
   if(!ismp)
     timerinit();   // uniprocessor timer
   startothers();   // start other processors
