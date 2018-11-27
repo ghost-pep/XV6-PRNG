@@ -1,4 +1,5 @@
 #include "hash.h"
+#include "defs.h"
 
 //hash value
 static unsigned int h[8];
@@ -34,9 +35,10 @@ static unsigned int rotright(unsigned int a, int n) {
  * internal sha256 function.
  *
  * @param data - the user data that is stored with integers
- * @param size - the bitsize of the data
+ * @param size - size of data array
  * @param buffer - the buffer that will contain the 512 bit aligned data with
  * padding
+ * @return - the number of integers used for the buffer
  */
 static int init(unsigned int *data, int size, unsigned int *buffer) {
     h[0] = 0x6a09e667;
@@ -48,16 +50,34 @@ static int init(unsigned int *data, int size, unsigned int *buffer) {
     h[6] = 0x1f83d9ab;
     h[7] = 0x5be0cd19;
 
-    //TODO: determine padding
+    //determine buffer size
+    int l = size * sizeof(unsigned int);
+    int bufsize = l + 1 + sizeof(unsigned int);
+    int subbufsize = bufsize % 512;
+    bufsize = bufsize - subbufsize + 512;
+
+    //check for correct size
+    if (size < 0 || bufsize < size) {
+        panic("invalid sha256 message size\n");
+    }
+
+    //clear the buffer
+    memset(buffer, bufsize / sizeof(char), 0);
 
     //populate the buffer
     int i;
-    for (i = 0; i < size / 32; i ++) {
+    for (i = 0; i < size; i++) {
         buffer[i] = data[i];
     }
 
-    //TODO: populate the buffer's padding
+    //populate the buffer's padding
+    /* int numzeros = bufsize - 1 - sizeof(unsigned int) - l - 31; */
+    /* i = i + 1; */
+    /* buffer[i] = 0x80000000; // 1 followed by 0s */
+    /* memset((void *)(buffer + i + 1), (bufsize - size - 32) / 32, numzeros / 32); */
+    /* int lasttwo = buffer + */ 
 
+    return bufsize / sizeof(unsigned int);
 }
 
 /**
@@ -136,12 +156,12 @@ static void sha256final(unsigned int *hash) {
 
 /**
  * Runs sha256 on the data.
- * @param data - array of data to hash
- * @param size - bit size of the data
- * @param buffer - 512 bit aligned (rounded up) buffer to hold the data
- * @return - hashed value
+ * @param data - array of data to hash that must be less than a page
+ * @param size - size of data
+ * @param - hashed value of size 256 bits
  */
-void sha256(unsigned int* data, int size, unsigned int *buffer, unsigned int *hash) {
+void sha256(unsigned int* data, int size, unsigned int *hash) {
+    unsigned int *buffer = (unsigned int *) kalloc();
     int bufsize = init(data, size, buffer);
     sha256internal(buffer, bufsize);
     sha256final(hash);
