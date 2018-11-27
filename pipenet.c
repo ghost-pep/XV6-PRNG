@@ -29,7 +29,7 @@ pipenet(void)
 {
 #define BUF_SIZE 100
 #define CTR_SIZE 112    // Must be a multiple of 16
-  int toshfds[2], fromshfds[2];
+  int toshfds[2], fromshfds[2], toe[2], frome[2];
   char buf[BUF_SIZE];
   //char encryptedBuf[BUF_SIZE];
   u_int8_t counter[CTR_SIZE];
@@ -57,8 +57,23 @@ pipenet(void)
       printf(2, "Pipe failed!");
       exit();
   }
+  if (pipe(frome)) {
+      printf(2, "Pipe failed!");
+      exit();
+  }
+  if (pipe(toe)) {
+      printf(2, "Pipe failed!");
+      exit();
+  }
 
-  if ((pid = fork()) == 0) { // if child
+
+  if ((pid = fork()) == 0) { // if sh
+
+    close(toe[0]); 	// close unneeded pipes
+    close(toe[1]);
+    close(frome[0]);
+    close(frome[1]);
+
     close(toshfds[1]);   // close write end
     close(fromshfds[0]); // close read end
     close(0);            // close console stdin
@@ -71,71 +86,162 @@ pipenet(void)
     close(fromshfds[1]); // close duplicated write fd
 
     exec(shargv[0], shargv); // invoke shell
+  } else if((pid = fork()) == 0) {
+    printf(1, "e started\n");
+    //child process
+    close(toshfds[0]);
+    close(fromshfds[1]);
+    /*close(0);
+    close(1);
+    close(2);*/
+
+    close(toe[1]);
+    close(frome[0]);
+    for(;;){
+      bytesread = 0;
+      result = 0;
+      data_ready = 0;
+
+      while(!data_ready) {
+	FD_ZERO(&read_fds);
+	FD_ZERO(&write_fds);
+
+	FD_SET(toe[0], &read_fds);
+	FD_SET(fromshfds[0], &read_fds);
+	/*FD_SET(frome[1], &write_fds);
+	FD_SET(toshfds[1], &write_fds);*/
+
+	if (select(20, &read_fds, &write_fds) != 0) {
+	  printf(1, "Select failed\n");
+	  return;
+	}
+
+	if (FD_ISSET(toe[0], &read_fds)) {		// read from pipenet
+	  bytesread += read(0, buf, sizeof(buf));
+	  write(toshfds[1], buf, bytesread);
+	  bytesread = 0;
+	  printf(1, "reading from pipenet, writing to sh\n", buf);
+	}
+
+	/*if (FD_ISSET(toshfds[1], &write_fds) && bytesread > 0) {  // write to sh
+	  write(toshfds[1], buf, bytesread);
+	  bytesread = 0;
+	  printf(1, "writing to sh\n");
+	}*/
+
+	if (FD_ISSET(fromshfds[0], &read_fds)) {
+	  data_ready = 1;
+	  read(fromshfds[0], buf, sizeof(buf));
+	  write(frome[1], buf, result);
+	  printf(1, "reading from sh, writing to pipenet\n");
+	}
+      }
+      
+      /*for(;;) {
+	printf(1, "reading from sh\n");
+	if(FD_ISSET(fromshfds[0], &read_fds)) {
+	  result = read(fromshfds[0], buf, sizeof(buf));
+	}
+
+	if (result > 0) {
+	  printf(1, "writing to pipenet\n");
+	  if(write(frome[1], buf, result) < 0) {
+	    printf(2, "Write error!");
+	    exit();
+	  }
+	  data_ready = 0;
+	  break;
+	} else if (result == 0) {
+	  data_ready = 0;
+	  break;
+	} else {
+	  printf(2, "Pipe read error!");
+	  exit();
+	}
+      }*/
+   } 
   } else {
-    close(toshfds[0]);  // close read end
-    close(fromshfds[1]);// close write end
+  printf(1, "pipenet started\n");
+	//pipenet
+    /*close(toshfds[0]);  // close read end
+    close(fromshfds[1]);  // close write end*/
+    close(toshfds[0]);
+    close(toshfds[1]);
+    close(fromshfds[0]);
+    close(fromshfds[1]);
+
+    close(toe[0]);
+    close(frome[1]);
+
     printf(1,"\n\n ***** Starting PipeNet ***** \n\n");
     for (;;) {
-	    bytesread = 0;
-	    result = 0;
-	    data_ready = 0;
+	bytesread = 0;
+	result = 0;
+	data_ready = 0;
 
-	    while(!data_ready) {
+	while(!data_ready) {
         //zero out the BOYS
         FD_ZERO(&read_fds);
         FD_ZERO(&write_fds);
 
-	      //populate the BOYS
-	      FD_SET(0, &read_fds);
-	      FD_SET(fromshfds[0], &read_fds);
-	      FD_SET(toshfds[1], &write_fds);
-	      FD_SET(1, &write_fds);
+	//populate the BOYS
+	FD_SET(0, &read_fds);
+	FD_SET(frome[0], &read_fds);
+	/*FD_SET(toe[1], &write_fds);
+	FD_SET(1, &write_fds);*/
 
-        if (select(12, &read_fds, &write_fds) != 0) {
+        if (select(20, &read_fds, &write_fds) != 0) {
           printf(1, "Select failed\n");
           return;
         }
 
-	      //check conditions
-	      if (FD_ISSET(0, &read_fds)) {		//if we can read from console, do it
-          //printf(1, "\nReading from console\n");
+	//check conditions
+	if (FD_ISSET(0, &read_fds)) {		//if we can read from console, read console and write e
           bytesread += read(0, buf, sizeof(buf));
-	      }
+	  write(toe[1], buf, bytesread);
+	  bytesread = 0;
+	  printf(1, "reading from console, writing to e\n");
+	}
 
-	      if (FD_ISSET(toshfds[1], &write_fds) && bytesread > 0) {	//if we can write to pipe, do it
-          //printf(1, "\nWriting to pipe\n");
-          write(toshfds[1], buf, bytesread);
-	        bytesread = 0;
-	      }
+	/*if (FD_ISSET(toe[1], &write_fds) && bytesread > 0) {	//if we can write to e, do it
+          printf(1, "writing to e\n");
+	  write(toe[1], buf, bytesread);
+	  bytesread = 0;
+	}*/
 
-	      if (FD_ISSET(fromshfds[0], &read_fds)) {	//if data is ready to read from pipe, do the loop
-		      data_ready = 1;
-		      //printf(1, "Data is ready\n");
-	      }
-	    }
+	if (FD_ISSET(frome[0], &read_fds)) {	//if data is ready to read from e, read e and write console
+	  printf(1, "reading from e\n");
+	  data_ready = 1;
+	  read(frome[0], buf, sizeof(buf));
+	  write(1, buf, result);
+	}
+      }
 
-      for (;;) {
+      /*for (;;) {
         //printf(1, "\nReading from pipe\n");
-		    if(FD_ISSET(fromshfds[0], &read_fds))
-          result = read(fromshfds[0], buf, sizeof(buf)); // read from pipe
+	if(FD_ISSET(frome[0], &read_fds)) {
+          result = read(frome[0], buf, sizeof(buf)); // read from pipe
+	  printf(1, "reading from e\n");
+	}
 
         if (result > 0) {
-          //printf(1, "\nWriting to console\n");
+          printf(1, "\nWriting to console\n");
           if (write(1, buf, result) < 0) { // write data from pipe to console
             printf(2, "Write error!");
             exit();
           }
           data_ready = 0;
-	  	    break;
+	  break;
         } else if (result == 0) { // no data left to read
-		      data_ready = 0;
+	  data_ready = 0;
           break;
         } else { // error
           printf(2, "Pipe read error!");
           exit();
         }
-      }
+      }*/
     }
+    wait();
     wait();
   }
 }
