@@ -61,7 +61,7 @@ sys_random(void) {
 static void
 prngreseed(char* seed, int length)
 {
-  hash(seed, length, prng.key);
+  sha256(seed, length, prng.key);
   incrctr();
   kfree(seed);
 
@@ -104,7 +104,7 @@ prngrand(char* output, int numbytes)
     for (int i = 0; i < MAX_POOLS; i++) {
       if (prng.reseed_ctr | (1 << i)) {
         acquire(&pools[i].lock);
-        hash(pools[i].entropy, (pools[i].size > POOL_SIZE) ? POOL_SIZE : pools[i].size, seed_data + offset);
+        sha256(pools[i].entropy, (pools[i].size > POOL_SIZE) ? POOL_SIZE : pools[i].size, seed_data + offset);
         offset += 32;
         memset(pools[i].entropy, 0, (pools[i].size > POOL_SIZE) ? POOL_SIZE : pools[i].size);
         pools[i].size = 0;

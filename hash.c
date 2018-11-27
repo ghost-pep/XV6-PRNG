@@ -1,5 +1,7 @@
-#include "hash.h"
+#include "types.h"
 #include "defs.h"
+#include "mmu.h"
+#include "hash.h"
 
 //hash value
 static unsigned int h[8];
@@ -40,7 +42,7 @@ static unsigned int rotright(unsigned int a, int n) {
  * padding
  * @return - the number of integers used for the buffer
  */
-static int init(unsigned int *data, int size, unsigned int *buffer) {
+static int init(char *data, int size, unsigned int *buffer) {
     h[0] = 0x6a09e667;
     h[1] = 0xbb67ae85;
     h[2] = 0x3c6ef372;
@@ -51,23 +53,24 @@ static int init(unsigned int *data, int size, unsigned int *buffer) {
     h[7] = 0x5be0cd19;
 
     //determine buffer size
-    int l = size * sizeof(unsigned int);
-    int bufsize = l + 1 + sizeof(unsigned int);
-    int subbufsize = bufsize % 512;
-    bufsize = bufsize - subbufsize + 512;
+    int l = size * sizeof(char);
+    int subbufsize = l % 512;
+    int bufsize = l + (512 - subbufsize);
 
     //check for correct size
-    if (size < 0 || bufsize < size) {
+    if (size < 0 || bufsize < size || bufsize >= PGSIZE * sizeof(char)) {
         panic("invalid sha256 message size\n");
     }
 
     //clear the buffer
     memset(buffer, bufsize / sizeof(char), 0);
 
+
     //populate the buffer
     int i;
-    for (i = 0; i < size; i++) {
-        buffer[i] = data[i];
+    for (i = 0; i < size; i += 4) {
+        int bufindex = i / 4;
+        buffer[bufindex] = (unsigned int) data[i+3] | data[i+2] << 8 | data[i+1] << 16 | data[i] << 24;
     }
 
     //populate the buffer's padding
@@ -112,18 +115,18 @@ static void sha256internal(unsigned int *buffer, int bufsize) {
         unsigned int e = h[4];
         unsigned int f = h[5];
         unsigned int g = h[6];
-        unsigned int h = h[7];
+        unsigned int z = h[7];
 
         //compression function
         for (int i = 0; i < 64; i++) {
             unsigned int S0, S1, ch, temp1, temp2, maj;
             S1 = rotright(e, 6) ^ rotright(e, 11) ^ rotright(e, 25);
             ch = (e & f) ^ ((~e) & g);
-            temp1 = h + S1 + ch + k[i] + w[i];
+            temp1 = z + S1 + ch + k[i] + w[i];
             S0 = rotright(a, 2) ^ rotright(a, 13) ^ rotright(a, 22);
             maj = (a & b) ^ (a & c) ^ (b & c);
             temp2 = S0 + maj;
-            h = g;
+            z = g;
             g = f;
             f = e;
             e = d + temp1;
@@ -140,7 +143,7 @@ static void sha256internal(unsigned int *buffer, int bufsize) {
         h[4] = h[4] + e;
         h[5] = h[5] + f;
         h[6] = h[6] + g;
-        h[7] = h[7] + h;
+        h[7] = h[7] + z;
 
     }
 }
@@ -160,9 +163,21 @@ static void sha256final(unsigned int *hash) {
  * @param size - size of data
  * @param - hashed value of size 256 bits
  */
-void sha256(unsigned int* data, int size, unsigned int *hash) {
+void sha256(char *data, int size, char *hash) {
     unsigned int *buffer = (unsigned int *) kalloc();
+    unsigned int hashinternal[8];
     int bufsize = init(data, size, buffer);
     sha256internal(buffer, bufsize);
-    sha256final(hash);
+    sha256final(hashinternal);
+    //copy internal hash to final hash
+    for (int i = 0; i < 32; i += 4) {
+        int internalindex = i / 4;
+        hash[i] = (char)(hashinternal[internalindex] >> 24);
+        hash[i + 1] = (char)(hashinternal[internalindex] >> 16);
+        hash[i+ 2] = (char)(hashinternal[internalindex] >> 8);
+        hash[i + 3] = (char)(hashinternal[internalindex]);
+    }
+    cprintf("hash: %x, %x, %x, %x, %x, %x, %x, %x\n", hashinternal[7], hashinternal[6], 
+            hashinternal[5], hashinternal[4], hashinternal[3],hashinternal[2],
+            hashinternal[1],hashinternal[0]);
 }

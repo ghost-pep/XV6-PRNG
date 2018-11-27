@@ -1,6 +1,6 @@
 #ifndef HASH_H
 #define HASH_H
 
-void sha256(unsigned int *data, int size, unsigned int *hash);
+void sha256(char *data, int size, char *hash);
 
 #endif
