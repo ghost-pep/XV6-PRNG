@@ -106,18 +106,22 @@ pipenet(void)
 	if (FD_ISSET(toe[0], &read_fds)) {		// read from pipenet
 	  //printf(1, "%d reading from pipenet, writing to sh\n", toe[0]);
 	  bytesread = read(toe[0], buf, sizeof(buf));
-	  decrypt((u_int8_t *)buf, (u_int8_t *)encryptedBuf, sizeof(buf), counter, KEY);
-printf(1, "Unencrypted Message to shell: %s\n", encryptedBuf);
+	  decrypt((u_int8_t *)buf, (u_int8_t *)encryptedBuf, bytesread, counter, KEY);
+printf(1, "Unencrypted Message to shell: %s\n\n", encryptedBuf);
 	  write(toshfds[1], encryptedBuf, bytesread);
+	  memset(encryptedBuf, 0, BUF_SIZE);
+	  memset(buf, 0, sizeof(buf));
 	}
 
 
 	if (FD_ISSET(fromshfds[0], &read_fds)) {	// read from sh
 	  //printf(1, "%d reading from sh, writing to pipenet\n", frome[0]);
 	  result = read(fromshfds[0], buf, sizeof(buf));
-	  encrypt((u_int8_t *)buf, (u_int8_t *)encryptedBuf, sizeof(buf), counter, KEY);
-printf(1, "Encrypted Message to pipenet: %s\n", encryptedBuf);
+	  encrypt((u_int8_t *)buf, (u_int8_t *)encryptedBuf, result, counter, KEY);
+printf(1, "Encrypted Message to pipenet: %s\n\n", encryptedBuf);
 	  write(frome[1], encryptedBuf, result);
+	  memset(encryptedBuf, 0, BUF_SIZE);
+	  memset(buf, 0, sizeof(buf));
         }
       
    } 
@@ -151,17 +155,21 @@ printf(1, "Encrypted Message to pipenet: %s\n", encryptedBuf);
 	if (FD_ISSET(0, &read_fds)) {		//if we can read from console, read console and write e
 	  //printf(1, "%d reading from console, writing to e\n", toe[0]);
           bytesread = read(0, buf, sizeof(buf));
-	  encrypt((u_int8_t *)buf, (u_int8_t *)encryptedBuf, sizeof(buf), counter, KEY);
-printf(1, "Encrypted Message to shell: %s\n", encryptedBuf);
+	  encrypt((u_int8_t *)buf, (u_int8_t *)encryptedBuf, bytesread, counter, KEY);
+printf(1, "Encrypted Message to pipenet: %s\n\n", encryptedBuf);
 	  write(toe[1], encryptedBuf, bytesread);
+	  memset(encryptedBuf, 0, BUF_SIZE);
+	  memset(buf, 0, sizeof(buf));
 	}
 
 	if (FD_ISSET(frome[0], &read_fds)) {	//if data is ready to read from e, read e and write console
 	  //printf(1, "%d reading from e\n", frome[0]);
 	  result = read(frome[0], buf, sizeof(buf));
-	  decrypt((u_int8_t *)buf, (u_int8_t *)encryptedBuf, sizeof(buf), counter, KEY);
-printf(1, "Decrypted message from shell: %s\n", encryptedBuf);
+	  decrypt((u_int8_t *)buf, (u_int8_t *)encryptedBuf, result, counter, KEY);
+printf(1, "Decrypted message from shell: %s\n\n", encryptedBuf);
 	  write(1, encryptedBuf, result);
+	  memset(encryptedBuf, 0, BUF_SIZE);
+	  memset(buf, 0, sizeof(buf));
 	}
     }
     wait();
