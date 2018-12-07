@@ -14,13 +14,11 @@
 
 #define BLOCK_SHIFT 2
 #define BLOCK_ROWS 4
-#define KEY_SIZE 4  // Size in words
-typedef u_int32_t key[KEY_SIZE];
+typedef u_int32_t key[];
 
 // Will be replaced by variables as we implement AES 192 & 256
 #define BLOCK_COLUMNS 4
 #define BLOCK_LENGTH 16
-#define ROUNDS 10
 
 /**
  Uses the master key to span al the children keys needed by the algorithm
@@ -29,7 +27,7 @@ typedef u_int32_t key[KEY_SIZE];
  @param roundKeys Pointer where the keys will be written. Array must be of size BLOCK_COLUMNS*(ROUNDS+1)
  @param keySize Size of the master key (in words)
  */
-void keyExpansion(key key, u_int32_t roundKeys[BLOCK_COLUMNS*(ROUNDS+1)], unsigned int keySize);
+void keyExpansion(key key, u_int32_t roundKeys[], unsigned int keySize);
 
 /**
  Encrypts the input using the given Round Keys.
@@ -37,8 +35,9 @@ void keyExpansion(key key, u_int32_t roundKeys[BLOCK_COLUMNS*(ROUNDS+1)], unsign
  @param in Plaintext to be encrypted (128-bits block)
  @param out Pointer where the ciphertext will be saved (128-bits)
  @param roundKeys Keys to give to the algorithm (Size : BLOCK_COLUMNS*(ROUNDS+1))
+ @param keySize Size of the master key (in words)
  */
-void aes_encrypt(const u_int8_t in[BLOCK_ROWS*BLOCK_COLUMNS], u_int8_t out[BLOCK_ROWS*BLOCK_COLUMNS], u_int32_t roundKeys[BLOCK_COLUMNS*(ROUNDS+1)]);
+void aes_encrypt(const u_int8_t in[BLOCK_LENGTH], u_int8_t out[BLOCK_LENGTH], u_int32_t roundKeys[], unsigned int keySize);
 
 /**
  Decrypts the input using the given Round Keys.
@@ -46,13 +45,9 @@ void aes_encrypt(const u_int8_t in[BLOCK_ROWS*BLOCK_COLUMNS], u_int8_t out[BLOCK
  @param in Ciphertext to be encrypted (128-bits block)
  @param out Pointer where the plaintext will be saved (128-bits)
  @param roundKeys Keys to give to the algorithm (Size : BLOCK_COLUMNS*(ROUNDS+1))
+ @param keySize Size of the master key (in words)
  */
-void aes_decrypt(const u_int8_t in[BLOCK_ROWS*BLOCK_COLUMNS], u_int8_t out[BLOCK_ROWS*BLOCK_COLUMNS], u_int32_t roundKeys[BLOCK_COLUMNS*(ROUNDS+1)]);
+void aes_decrypt(const u_int8_t in[BLOCK_LENGTH], u_int8_t out[BLOCK_LENGTH], u_int32_t roundKeys[], unsigned int keySize);
 
-
-/**
- Non-functional method only for compilation purposes. DO NOT CALL !!!!!
- */
-//void aesblockcipher(char*, int*, char*);
 
 #endif /* aes_h */

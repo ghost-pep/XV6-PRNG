@@ -238,13 +238,14 @@ u_int32_t subWord(u_int32_t word) {
 }
 
 void keyExpansion(key key, u_int32_t roundKeys[], unsigned int keySize) {
+    const unsigned int rounds = 6 + keySize;
     // First key is master one
     for (int index = 0; index<keySize; index += 1) {
         roundKeys[index] = key[index];
     }
     
     // Then we compute the other round keys
-    for (int index = keySize; index<BLOCK_COLUMNS*(ROUNDS+1); index += 1) {
+    for (int index = keySize; index<BLOCK_COLUMNS*(rounds+1); index += 1) {
         u_int32_t temp = roundKeys[index-1]; //Works if keySize>0
         if (index%keySize == 0) {
             temp = subWord(rotWord(temp))^rcon[index/keySize];
@@ -272,13 +273,15 @@ void keyExpansion(key key, u_int32_t roundKeys[], unsigned int keySize) {
 //    }
 //}
 
-void aes_encrypt(const u_int8_t in[BLOCK_ROWS*BLOCK_COLUMNS], u_int8_t out[BLOCK_ROWS*BLOCK_COLUMNS], u_int32_t roundKeys[BLOCK_COLUMNS*(ROUNDS+1)]) {
+void aes_encrypt(const u_int8_t in[BLOCK_LENGTH], u_int8_t out[BLOCK_LENGTH], u_int32_t roundKeys[], unsigned int keySize) {
+    unsigned int rounds = 6 + keySize;
+    
     block state;
     loadToState(in, state);
     
     addRoundKey(state, &roundKeys[0]);
     
-    for (unsigned int round = 1; round<ROUNDS; round += 1) {
+    for (unsigned int round = 1; round<rounds; round += 1) {
         subBytes(state);
         shiftRows(state);
         mixColumns(state);
@@ -287,19 +290,21 @@ void aes_encrypt(const u_int8_t in[BLOCK_ROWS*BLOCK_COLUMNS], u_int8_t out[BLOCK
     
     subBytes(state);
     shiftRows(state);
-    addRoundKey(state, &roundKeys[ROUNDS*BLOCK_COLUMNS]);
+    addRoundKey(state, &roundKeys[rounds*BLOCK_COLUMNS]);
     
     loadFromState(state, out);
 }
 
 
-void aes_decrypt(const u_int8_t in[BLOCK_ROWS*BLOCK_COLUMNS], u_int8_t out[BLOCK_ROWS*BLOCK_COLUMNS], u_int32_t roundKeys[BLOCK_COLUMNS*(ROUNDS+1)]) {
+void aes_decrypt(const u_int8_t in[BLOCK_LENGTH], u_int8_t out[BLOCK_LENGTH], u_int32_t roundKeys[], unsigned int keySize) {
+    unsigned int rounds = 6 + keySize;
+    
     block state;
     loadToState(in, state);
     
-    addRoundKey(state, &roundKeys[ROUNDS*BLOCK_COLUMNS]);
+    addRoundKey(state, &roundKeys[rounds*BLOCK_COLUMNS]);
     
-    for (unsigned int round = ROUNDS - 1; round>0; round -= 1) {
+    for (unsigned int round = rounds - 1; round>0; round -= 1) {
         invShiftRows(state);
         invSubBytes(state);
         addRoundKey(state, &roundKeys[round*BLOCK_COLUMNS]);
@@ -311,8 +316,4 @@ void aes_decrypt(const u_int8_t in[BLOCK_ROWS*BLOCK_COLUMNS], u_int8_t out[BLOCK
     addRoundKey(state, &roundKeys[0]);
     
     loadFromState(state, out);
-}
-
-void aesblockcipher(char* key, int* counter, char* output) {
-    panic("aesblockcipher not implemented !!!!!\n Use methods in ctr.h instead\n");
 }

@@ -12,18 +12,17 @@
  * @brief Algorithm for CTR encryption and decryption (the algorithm is the same). Called by the appropriate methods
  */
 void ctr(const u_int8_t in[], u_int8_t out[], const u_int8_t sequence[], size_t size, key key, unsigned int keySize) {
-    if (keySize != KEY_SIZE) {
-        cprintf("ERROR : Only AES-128 has been implemented by now. Only  the first 128-bits of the key will be used\n");
-    }
-    u_int32_t roundKeys[BLOCK_COLUMNS*(ROUNDS+1)];
-    u_int8_t encrypted_sequence[BLOCK_ROWS*BLOCK_COLUMNS];
+    const int rounds = keySize + 6;
+    
+    u_int32_t roundKeys[BLOCK_COLUMNS*(rounds+1)];
+    u_int8_t encrypted_sequence[BLOCK_LENGTH];
     // Compute the Round keys needed by AES
     keyExpansion(key, roundKeys, keySize);
     
     for (unsigned int index = 0; index < size; index += 1) {
-        if (index % (BLOCK_ROWS*BLOCK_COLUMNS) == 0) {
+        if (index % (BLOCK_LENGTH) == 0) {
             // Encrypt the sequence
-            aes_encrypt(&sequence[index], &encrypted_sequence[index], roundKeys);
+            aes_encrypt(&sequence[index], &encrypted_sequence[index], roundKeys, keySize);
         }
         // And encrypt the message using the encrypted sequance (one-time pad)
         out[index] = encrypted_sequence[index] ^ in[index];
