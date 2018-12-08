@@ -7,6 +7,7 @@
 #include "mmu.h"
 #include "proc.h"
 #include "ctr.h"
+#include "encryption.h"
 
 int
 sys_fork(void)
