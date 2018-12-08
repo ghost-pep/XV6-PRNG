@@ -115,6 +115,8 @@ prngrand(char* output, int numbytes)
 
     /* Reseed with pool data. */
     prngreseed(seed_data, offset);
+  } else {
+    release(&pools[0].lock);
   }
 
   if (prng.reseed_ctr == 0) {
