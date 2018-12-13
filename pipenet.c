@@ -34,7 +34,7 @@ pipenet(void)
   char encryptedBuf[BUF_SIZE];
   u_int8_t counter[CTR_SIZE];
   random((char*)counter, CTR_SIZE);
-  u_int32_t KEY[4] = {0x1E1E1E1E,0x87654321,0xDEADBEEF,0xABCBACED};
+  u_int32_t KEY[8] = {0x1E1E1E1E, 0x87654321, 0xDEADBEEF, 0xABCBACED, 0xF00DF00D, 0xA16B12C1, 0xCAFEBABE, 0xBEEFDEAD};
 
   int bytesread;			// Used to denote how many bytes are waiting to be
         // read from the console
@@ -123,8 +123,8 @@ printf(1, "Encrypted Message to pipenet: %s\n\n", encryptedBuf);
 	  memset(encryptedBuf, 0, BUF_SIZE);
 	  memset(buf, 0, sizeof(buf));
         }
-      
-   } 
+
+   }
   } else {
     //printf(1, "pipenet started\n");
     //pipenet

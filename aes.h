@@ -20,6 +20,12 @@ typedef u_int32_t key[];
 #define BLOCK_COLUMNS 4
 #define BLOCK_LENGTH 16
 
+#define AES_128_KEY_SIZE 4
+#define AES_192_KEY_SIZE 6
+#define AES_256_KEY_SIZE 8
+
+#define KEY_SIZE_ROUNDS(n) (6 + (n))
+
 /**
  Uses the master key to span al the children keys needed by the algorithm
 
@@ -41,7 +47,7 @@ void aes_encrypt(const u_int8_t in[BLOCK_LENGTH], u_int8_t out[BLOCK_LENGTH], u_
 
 /**
  Decrypts the input using the given Round Keys.
- 
+
  @param in Ciphertext to be encrypted (128-bits block)
  @param out Pointer where the plaintext will be saved (128-bits)
  @param roundKeys Keys to give to the algorithm (Size : BLOCK_COLUMNS*(ROUNDS+1))

@@ -96,11 +96,11 @@ int invSubBytes(block state) {
 int shiftRows(block state) {
     for (unsigned int row = 0; row < BLOCK_ROWS; row += 1) {
         char storedRow[4];
-        
+
         for (unsigned int column = 0; column < BLOCK_COLUMNS; column += 1) {
             storedRow[column] = *byteOfState(row, column, state);
         }
-        
+
         for (unsigned int column = 0; column < BLOCK_COLUMNS; column += 1) {
             *byteOfState(row, column, state) = storedRow[(column + row)&3];
             // Here, the &3 replaces the %BLOCK_COLUMNS. Only works if BLOCK_COLUMNS=4
@@ -112,11 +112,11 @@ int shiftRows(block state) {
 int invShiftRows(block state) {
     for (unsigned int row = 0; row < BLOCK_ROWS; row += 1) {
         char storedRow[4];
-        
+
         for (unsigned int column = 0; column < BLOCK_COLUMNS; column += 1) {
             storedRow[column] = *byteOfState(row, column, state);
         }
-        
+
         for (unsigned int column = 0; column < BLOCK_COLUMNS; column += 1) {
             *byteOfState(row, column, state) = storedRow[(column - row)&3];
             // Here, the &3 replaces the %BLOCK_COLUMNS. Only works if BLOCK_COLUMNS=4
@@ -156,22 +156,22 @@ int mixColumns(block state) {
         for (unsigned row = 0; row<BLOCK_ROWS; row += 1) {
             storedColumn[row] = *byteOfState(row, column, state);
         }
-        
+
         *byteOfState(0, column, state) =    mult(2 ,storedColumn[0]) ^
                                             mult(3 ,storedColumn[1]) ^
                                             storedColumn[2] ^
                                             storedColumn[3];
-        
+
         *byteOfState(1, column, state) =    storedColumn[0] ^
                                             mult(2 ,storedColumn[1]) ^
                                             mult(3 ,storedColumn[2]) ^
                                             storedColumn[3];
-        
+
         *byteOfState(2, column, state) =    storedColumn[0] ^
                                             storedColumn[1] ^
                                             mult(2 ,storedColumn[2]) ^
                                             mult(3 ,storedColumn[3]);
-        
+
         *byteOfState(3, column, state) =    mult(3 ,storedColumn[0]) ^
                                             storedColumn[1] ^
                                             storedColumn[2] ^
@@ -186,22 +186,22 @@ int invMixColumns(block state) {
         for (unsigned row = 0; row<BLOCK_ROWS; row += 1) {
             storedColumn[row] = *byteOfState(row, column, state);
         }
-        
+
         *byteOfState(0, column, state) =    mult(0xe ,storedColumn[0]) ^
                                             mult(0xb ,storedColumn[1]) ^
                                             mult(0xd ,storedColumn[2]) ^
                                             mult(0x9 ,storedColumn[3]);
-        
+
         *byteOfState(1, column, state) =    mult(0x9 ,storedColumn[0]) ^
                                             mult(0xe ,storedColumn[1]) ^
                                             mult(0xb ,storedColumn[2]) ^
                                             mult(0xd ,storedColumn[3]);
-        
+
         *byteOfState(2, column, state) =    mult(0xd ,storedColumn[0]) ^
                                             mult(0x9 ,storedColumn[1]) ^
                                             mult(0xe ,storedColumn[2]) ^
                                             mult(0xb ,storedColumn[3]);
-        
+
         *byteOfState(3, column, state) =    mult(0xb ,storedColumn[0]) ^
                                             mult(0xd ,storedColumn[1]) ^
                                             mult(0x9 ,storedColumn[2]) ^
@@ -243,7 +243,7 @@ void keyExpansion(key key, u_int32_t roundKeys[], unsigned int keySize) {
     for (int index = 0; index<keySize; index += 1) {
         roundKeys[index] = key[index];
     }
-    
+
     // Then we compute the other round keys
     for (int index = keySize; index<BLOCK_COLUMNS*(rounds+1); index += 1) {
         u_int32_t temp = roundKeys[index-1]; //Works if keySize>0
@@ -252,7 +252,7 @@ void keyExpansion(key key, u_int32_t roundKeys[], unsigned int keySize) {
         } else if (keySize>6&&index%keySize==4) {
             temp = subWord(temp);   // Only happens in AES-256 (keySize = 8)
         }
-        
+
         roundKeys[index] = roundKeys[index-keySize] ^ temp;
     }
 }
@@ -275,45 +275,45 @@ void keyExpansion(key key, u_int32_t roundKeys[], unsigned int keySize) {
 
 void aes_encrypt(const u_int8_t in[BLOCK_LENGTH], u_int8_t out[BLOCK_LENGTH], u_int32_t roundKeys[], unsigned int keySize) {
     unsigned int rounds = 6 + keySize;
-    
+
     block state;
     loadToState(in, state);
-    
+
     addRoundKey(state, &roundKeys[0]);
-    
+
     for (unsigned int round = 1; round<rounds; round += 1) {
         subBytes(state);
         shiftRows(state);
         mixColumns(state);
         addRoundKey(state, &roundKeys[round*BLOCK_COLUMNS]);
     }
-    
+
     subBytes(state);
     shiftRows(state);
     addRoundKey(state, &roundKeys[rounds*BLOCK_COLUMNS]);
-    
+
     loadFromState(state, out);
 }
 
 
 void aes_decrypt(const u_int8_t in[BLOCK_LENGTH], u_int8_t out[BLOCK_LENGTH], u_int32_t roundKeys[], unsigned int keySize) {
     unsigned int rounds = 6 + keySize;
-    
+
     block state;
     loadToState(in, state);
-    
+
     addRoundKey(state, &roundKeys[rounds*BLOCK_COLUMNS]);
-    
+
     for (unsigned int round = rounds - 1; round>0; round -= 1) {
         invShiftRows(state);
         invSubBytes(state);
         addRoundKey(state, &roundKeys[round*BLOCK_COLUMNS]);
         invMixColumns(state);
     }
-    
+
     invShiftRows(state);
     invSubBytes(state);
     addRoundKey(state, &roundKeys[0]);
-    
+
     loadFromState(state, out);
 }

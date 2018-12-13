@@ -13,12 +13,12 @@
  */
 void ctr(const u_int8_t in[], u_int8_t out[], const u_int8_t sequence[], size_t size, key key, unsigned int keySize) {
     const int rounds = keySize + 6;
-    
+
     u_int32_t roundKeys[BLOCK_COLUMNS*(rounds+1)];
     u_int8_t encrypted_sequence[BLOCK_LENGTH];
     // Compute the Round keys needed by AES
     keyExpansion(key, roundKeys, keySize);
-    
+
     for (unsigned int index = 0; index < size; index += 1) {
         if (index % (BLOCK_LENGTH) == 0) {
             // Encrypt the sequence
